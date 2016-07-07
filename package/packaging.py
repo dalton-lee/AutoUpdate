@@ -144,9 +144,9 @@ def getProperties(filename):
         if line.strip().startswith("#"):
             continue
         if line.find('=') > 0:
-            if fileencode == 'utf-8':
-                if line[:3].encode('utf-8') == codecs.BOM_UTF8:
-                    line = line[3:]
+            if fileencode.lower() == 'utf-8':
+                if line.encode('utf-8')[:3] == codecs.BOM_UTF8:
+                    line = line.encode('utf-8')[3:].decode('utf-8')
             strs = line.strip()
             index = strs.index('=')
             properties[strs[0:index].strip()] = strs[index+1:len(strs)].strip()
@@ -170,7 +170,7 @@ def printf(string):
         print(string.decode('utf-8').encode('gbk'))
 
 if __name__=="__main__":
-    getConfig(r'C:\Users\Lee\Desktop\autoupdate\file.ini')
+    getConfig(r'packaging.ini')
     optins = GLOBAL_CONFIG.options('plugin')
     syncversion = GLOBAL_CONFIG.get('BusSync','version')
     saleversion = GLOBAL_CONFIG.get('BusSale','version')

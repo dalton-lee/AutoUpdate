@@ -7,6 +7,9 @@ import json
 import time
 import urllib2
 import platform
+import ConfigParser
+
+UPDATE_CONFIG = 0
 
 def checkplay(remotedir,localdir):
     if not remotedir.endswith('/'):
@@ -130,6 +133,13 @@ if __name__ == '__main__':
         for s in os.popen(cmd).readlines():
             if pid != int(s):
                 os.popen('kill %d' % int(s))
+    
+    config = ConfigParser.ConfigParser()
+    with open('update.conf') as conf:
+        config.readfp(conf)
+    UPDATE_CONFIG = config
+    
+    
     
     remotedir = 'http://192.168.3.66:8080/takepackage/play-1.2.3/'
     localdir = '/home/lee/play-1.2.3/'

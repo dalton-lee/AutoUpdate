@@ -67,16 +67,17 @@ def createDict(path, root):
 if __name__=='__main__':
     import sys
     import random
-    fv = open('version','w')
+    fv = open('/home/lee/play-1.2.3/version','w')
     fv.write(str(random.random()))
     fv.close()
     allfile = []
     root = {}
-    dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+#    dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 #    dir = 'D:\glassfish3\glassfish\domains\domain1\docroot\play-1.2.3'
+    dir = '/home/lee/play-1.2.3'
     search(dir, allfile)
     generate(allfile,root)
     filejson = json.dumps(root,ensure_ascii=False)
-    f = open("filemd5",'w')
+    f = open("/home/lee/play-1.2.3/filemd5",'w')
     f.write(filejson)
     f.close()
