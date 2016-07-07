@@ -32,6 +32,12 @@ def checkplay(remotedir,localdir):
             ls = open(lverfile).read()
         except:
             printf ('Can\'t find local version file:%s' % lverfile)
+            printf ('开始生成本地MD5文件')
+            try:
+                os.system('python /home/lee/pym/FileLoop')
+                time.sleep(10)
+            except:
+                printf('生成本地MD5文件失败，再说...')  
         if rs.strip() == ls.strip() :
             printf (time.strftime('%Y-%m-%d %H:%M:%S')+'：play暂无更新，当前版本号为：%s' % (ls))
         else:
@@ -118,6 +124,13 @@ def addfile(remotepath,filepath):
         printf ('failed:%s' % remotepath)
 
 if __name__ == '__main__':
+    if(platform.system() == 'Linux'):
+        cmd = "ps aux|grep %s|awk '{print $2}'" % __file__
+        pid = os.getpid()
+        for s in os.popen(cmd).readlines():
+            if pid != int(s):
+                os.popen('kill %d' % int(s))
+    
     remotedir = 'http://192.168.3.66:8080/takepackage/play-1.2.3/'
     localdir = '/home/lee/play-1.2.3/'
     pymdir = '/home/lee/pym'

@@ -8,12 +8,14 @@ import urllib2
 import shutil
 import zipfile
 import platform
+import socket
+import datetime
 
 def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay,servicename):
     pymdir = os.path.join(localdir,'pym')#自定义python模块目录
     sys.path.append(pymdir)
     from pyutil import printf,downloadFile,projectcontroller,projectcontrollerwin
-    import updateport,updatelocaldb
+    import updateport,updatelocaldb,DBmodule
     
     localproject = os.path.join(localdir,projectname)#本地工程目录
     tmpproject = '%s%s' % (localproject,'tmp')#临时工程目录
@@ -144,6 +146,9 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay,se
                 logcf.write(os.linesep)
                 logcf.write(stscf)
                 logcf.close()
+                
+            DBmodule.filepath = localconf
+            DBmodule.conn = DBmodule.DBUtils(DBmodule.getDBconfig(localconf)).getConn()
     
             updatelocaldb.execsql(localconf,dbdir,patchdir)
     
@@ -160,20 +165,34 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay,se
             os.system('%s -s reload' % nginx) #平滑切换NGINX到正式工程
 
             time.sleep(delay)
+            
+            sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+            try:
+                sock.connect(('localhost',9000))
+                sock.shutdown(socket.SHUT_RDWR)
+                DBmodule.executeSQL("insert into updatelog(project,isok,message,version,updatetime) value('%s',1,'升级成功','%s','%s')" % (projectname,rv,str(datetime.datetime.now())[:19]))
+            except:
+                printf("监测到9000端口无法连通，BusSale可能没有正常启动")
                 
             projectcontroller(playpath,'stop',tmpproject)
     
             printf (time.strftime('%Y-%m-%d %H:%M:%S')+' %s由%s版本更新至%s版本成功！' % (projectname,lv[:-1],rv))
 
 def checksalemod():
-    remotedir = 'http://192.168.3.66:8080/takepackage/22010000005'
-    localdir = '/home/lee'
-    projectname = 'BusSale'
+
+    remotedir = 'http://10.10.1.63:9080/takepackage/620982DHCZ'
+    localdir = '/home/lee' 		
+
+    projectname = 'BusSale'			
+
     playpath = '/home/lee/play-1.2.3/play'#可执行文件
+
 #    Window下，此文件为D:\lee\play-1.2.3\play.bat
     port = '7890'
+
     nginx = '/usr/sbin/nginx'#可执行文件
     ngconf = '/etc/nginx'#配置文件目录
+
     delay = 60 #延迟切换时间，保证过渡平滑
     servicename = 'BusSaleService' #windows下服务名称
     checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay,servicename)

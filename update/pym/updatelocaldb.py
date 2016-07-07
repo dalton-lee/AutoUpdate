@@ -4,6 +4,10 @@ import os
 import re
 
 import MySQLdb
+try:
+    from pyutil import decrypt
+except:
+    print('error:Can\'t find pyutil.py')
 
 #acquire each sql list file from a path ,separated  in a different list  by execute database type
 def acquiresqlfile(path):
@@ -127,7 +131,8 @@ def executeNSQL(sql, cur):
 
     try:
         if len(checkSql) > 0:
-            cur.execute(checkSql)
+            checkSqlt=checkSql.replace('@@dbname','buspre')
+            cur.execute(checkSqlt)
             okcChSqllist = cur.fetchone()
             okChkSql = okcChSqllist[0]
             g_repeatcheckexeccount=g_repeatcheckexeccount+1
@@ -191,14 +196,8 @@ def getProperties(filename):
     p.close()
     return properties
 
-if __name__ == '__main__':
-    f = 'D:\\lee\\BusSync\\conf\\application.conf';
-    ps = {}
-    try:
-        ps = getProperties(f)
-    except:
-        f = 'D:\\lee\\BusSale\\conf\\application.conf'
-        ps = getProperties(f)
+def execsql(cfgname,dbdir,patchdir):
+    ps = getProperties(cfgname)
     shost = '';
     sport = '';
     sdb = '';
@@ -212,15 +211,18 @@ if __name__ == '__main__':
         if 'db_local.user' == k :
             suser = v
         if 'db_local.pass' == k :
-            spasswd = v
+            if v.startswith('^'):
+                spasswd = decrypt(v)
+            else:
+                spasswd = v
     conn = MySQLdb.connect(host=shost, port=int(sport), db=sdb, user=suser, passwd=spasswd, charset='utf8')
     cursor = conn.cursor();
     
-    sqlfilelist = acquiresqlfile('D:\\lee\\updateconfig\\localdb')
+    sqlfilelist = acquiresqlfile(dbdir)
     sqlsetlist = splitsql(sqlfilelist)
     executeSingleDB(sqlsetlist, cursor, conn)
     
-    sqlfilelist = acquiresqlfile('D:\\lee\\updateconfig\\localdb\\Patch')
+    sqlfilelist = acquiresqlfile(patchdir)
     sqlsetlist = splitsql(sqlfilelist)
     executeSingleDB(sqlsetlist, cursor, conn)
     
