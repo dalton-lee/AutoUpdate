@@ -11,13 +11,31 @@ import ConfigParser
 
 UPDATE_CONFIG = 0
 
-def checkplay(remotedir,localdir):
+def checkplay(remotedir,workdir):
+    
+    global UPDATE_CONFIG
+    
     if not remotedir.endswith('/'):
-        rverfile = remotedir + '/' + 'version'
-        rmd5file = remotedir + '/' + 'filemd5'
-    else:
-        rverfile = remotedir + 'version'
-        rmd5file = remotedir + 'filemd5'
+        remotedir = remotedir + '/'
+        
+    orgcode = UPDATE_CONFIG.get('global', 'orgcode')
+    projectdir = remotedir + orgcode
+    
+    syncservice = UPDATE_CONFIG.get('BusSync', 'servicename')
+    saleservice = UPDATE_CONFIG.get('BusSale', 'servicename')
+    
+    port = UPDATE_CONFIG.get('BusSale', 'port')
+    nginx = UPDATE_CONFIG.get('BusSale', 'nginx')
+    ngconf = UPDATE_CONFIG.get('BusSale', 'ngconf')
+    delay = UPDATE_CONFIG.get('BusSale', 'delay')
+    
+    remotedir = remotedir + 'play-1.2.3/'
+    localdir = os.path.join(workdir,'play-1.2.3')
+    
+    play = os.path.join(localdir,'play')
+    
+    rverfile = remotedir + 'version'
+    rmd5file = remotedir + 'filemd5'
     lverfile = os.path.join(localdir,'version')
     lmd5file = os.path.join(localdir,'filemd5')
     while True:
@@ -81,20 +99,15 @@ def checkplay(remotedir,localdir):
             remotediff = remotekeys-localkeys
             for remote in remotediff:
                 rpath = remotedict[remote]
-                remotepath = ''
-                if not remotedir.endswith('/'):
-                    remotepath = remotedir + '/' + rpath
-                else:
-                    remotepath = remotedir + rpath
+                remotepath = remotedir + rpath
                 filepath = os.path.join(localdir,rpath.replace('/',os.path.sep))
                 addfile(remotepath,filepath)
                 continue
             if(platform.system() == 'Linux'):
-                play = os.path.join(localdir,'play')
                 os.system('chmod 744 %s' % play)
             printf (time.strftime('%Y-%m-%d %H:%M:%S')+'：play由%s版本更新至%s版本成功！' % (ls,rs))
-        checksync.checksyncmod()
-        checksale.checksalemod()
+        checksync(projectdir,workdir,'BusSync',play,syncservice)
+        checksale(projectdir,workdir,'BusSale',play,port,nginx,ngconf,delay,saleservice)
         time.sleep(60)
 
 def removefile(filepath):
@@ -127,6 +140,7 @@ def addfile(remotepath,filepath):
         printf ('failed:%s' % remotepath)
 
 if __name__ == '__main__':
+    
     if(platform.system() == 'Linux'):
         cmd = "ps aux|grep %s|awk '{print $2}'" % __file__
         pid = os.getpid()
@@ -139,13 +153,14 @@ if __name__ == '__main__':
         config.readfp(conf)
     UPDATE_CONFIG = config
     
+    remotedir = config.get('global','remotedir')
     
+    workdir = config.get('global','workdir')
     
-    remotedir = 'http://192.168.3.66:8080/takepackage/play-1.2.3/'
-    localdir = '/home/lee/play-1.2.3/'
-    pymdir = '/home/lee/pym'
+    pymdir = os.path.join(workdir,'pym')
     sys.path.append(pymdir)
+    
     from pyutil import printf,downloadFile
-    import checksale
-    import checksync
-    checkplay(remotedir,localdir)
+    from checksync import checksync
+    from checksale import checksale
+    checkplay(remotedir,workdir)

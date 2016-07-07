@@ -1,21 +1,17 @@
 #!/usr/bin/env python
 #coding=utf-8
 
-import datetime
 import os
-import shutil
-import socket
 import sys
 import time
+import shutil
 import zipfile
+import urllib2
+import platform
 
-
-def checksync(remotedir,localdir,projectname,playpath,servicename,logfile):
-    pymdir = os.path.join(localdir,'pym')
-    sys.path.append(pymdir)
-    from pyutil import *
-    import updatelocaldb,DBmodule
-    rotatelog(logfile)
+def checksync(remotedir,localdir,projectname,playpath,servicename):
+    from pyutil import printf,downloadFile,projectcontroller,projectcontrollerwin
+    import updatelocaldb
 
     if not remotedir.endswith('/'):
         remoteproject = remotedir + '/' + projectname
@@ -55,7 +51,6 @@ def checksync(remotedir,localdir,projectname,playpath,servicename,logfile):
         lv = open(lverfile).read()
     except:
         printf ('Can\'t find local version file:%s' % lverfile)
-#        DBmodule.executeSQL("insert into updatelog(project,isok,message,version,updatetime) value(%s,2,'未找到本地版本文件，可能是初次部署，或者上次升级失败',%s,%s)" % (projectname,rv,str(datetime.datetime.now())[:19]))
 
     if rv.strip() == lv.strip() :
         printf (time.strftime('%Y-%m-%d %H:%M:%S')+'：%s暂无更新，当前版本号为：%s' % (projectname,rv))
@@ -80,20 +75,18 @@ def checksync(remotedir,localdir,projectname,playpath,servicename,logfile):
             except:
                 flag2 = False
                 printf ('Can\'t find %s/%s/station.conf or stationlog4j.properties,update abort!' % (remoteproject,rv.strip()))
-#                DBmodule.executeSQL("insert into updatelog(project,isok,message,version,updatetime) value(%s,0,'下载conf或log配置文件失败',%s,%s)" % (projectname,rv,str(datetime.datetime.now())[:19]))
+            
             try:
                 downloadFile(durl,zfile)
             except:
                 flag2 = False
                 printf ('Can\'t find %s,update abort' % durl)
-#                DBmodule.executeSQL("insert into updatelog(project,isok,message,version,updatetime) value(%s,0,'下载压缩包失败：%s',%s,%s)" % (projectname,durl,rv,str(datetime.datetime.now())[:19]))
         else:
             try:
                 downloadFile('%s/%s/%s.zip' % (remoteproject,rv.strip(),projectname),zfile)
             except:
                 flag2 = False
                 printf ('Can\'t find %s/%s/%s.zip' % (remoteproject,rv.strip(),projectname))
-#                DBmodule.executeSQL("insert into updatelog(project,isok,message,version,updatetime) value(%s,0,'下载压缩包失败',%s,%s)" % (projectname,rv,str(datetime.datetime.now())[:19]))
 
         if flag2:
             if(platform.system() == 'Linux'):
@@ -118,9 +111,6 @@ def checksync(remotedir,localdir,projectname,playpath,servicename,logfile):
                 logcf.write(os.linesep)
                 logcf.write(stscf)
                 logcf.close()
-            
-            DBmodule.filepath = localconf
-            DBmodule.conn = DBmodule.DBUtils(DBmodule.getDBconfig(localconf)).getConn()
     
             updatelocaldb.execsql(localconf,dbdir,patchdir)
     
@@ -131,27 +121,3 @@ def checksync(remotedir,localdir,projectname,playpath,servicename,logfile):
             else:
                 projectcontrollerwin('start',servicename)
             printf (time.strftime('%Y-%m-%d %H:%M:%S')+'：%s由%s版本更新至%s版本成功！' % (projectname,lv[:-1],rv))
-            
-            time.sleep(30)
-            sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-            try:
-                sock.connect(('localhost',9001))
-                sock.shutdown(socket.SHUT_RDWR)
-                DBmodule.executeSQL("insert into updatelog(project,isok,message,version,updatetime) value('%s',1,'升级成功','%s','%s')" % (projectname,rv,str(datetime.datetime.now())[:19]))
-            except:
-                printf("监测到9001端口无法连通，BusSync可能没有正常启动")
-
-def checksyncmod():
-
-#    remotedir = 'http://10.10.1.63:9080/takepackage/620982DHCZ'
-    remotedir = 'http://192.168.3.129:8085/takepackage/152500XLHT'
-
-    servicename = 'BusSyncService'
-
-    localdir = '/home/lee'
-    playpath = '/home/lee/play-1.2.3/play'
-
-    projectname = 'BusSync'
-    logfile = '/home/lee/pym/logs/BusSync.log'
-
-    checksync(remotedir,localdir,projectname,playpath,servicename,logfile)
