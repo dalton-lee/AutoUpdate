@@ -12,7 +12,7 @@ import platform
 def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf):
     pymdir = os.path.join(localdir,'pym')#自定义python模块目录
     sys.path.append(pymdir)
-    import pyutil
+    from pyutil import printf,downloadFile,projectcontroller
     import updateport
     
     localproject = os.path.join(localdir,projectname)#本地工程目录
@@ -52,79 +52,83 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf):
     try:
         rv = urllib2.urlopen(rverfile).read()
     except:
-        print 'Connection refused: %s' % rverfile
+        printf ('Connection refused: %s' % rverfile)
 
     lv = 'v'
     try:
         lv = open(lverfile).read()
     except:
-        print 'Can\'t find versionfile:%s' % lverfile
+        printf ('Can\'t find local version file:%s' % lverfile)
 
     if rv.strip() == lv.strip() :
-        print time.strftime('%Y-%m-%d %H:%M:%S')+'：%s暂无更新，当前版本号为：%s' % (projectname,rv)
+        printf (time.strftime('%Y-%m-%d %H:%M:%S')+'：%s暂无更新，当前版本号为：%s' % (projectname,rv))
     else:
-        if os.path.exists(tmpproject):
-            shutil.rmtree(tmpproject)
-        shutil.copytree(localproject,tmpproject)
-        
+        flag = True
         try:
-            updateport.modifyconf(tmpconf,'http.port',port)
+            downloadFile('%s/%s/%s.zip' % (remoteproject,rv.strip(),projectname),zfile)
         except:
-            print 'Can\'t modify tmp project port:%s' % tmpconf
-
-        try:
-            os.remove(os.path.join(tmpproject,'server.pid'))
-        except:
-            pass
-
-        pyutil.projectcontroller(playpath,'start',tmpproject)
-        
-        shutil.copyfile(ngtmpconf,defaultconf)
-        os.system('%s -s reload' % nginx)
-        
-        pyutil.projectcontroller(playpath,'stop',localproject)
-
-        try:
-            pyutil.downloadFile('%s/%s/%s.zip' % (remoteproject,rv.strip(),projectname),zfile)
-        except:
-            print 'not found %s/%s/%s.zip' % (localproject,rv.strip(),projectname)
-
-        if os.path.exists(configdir):
-            shutil.rmtree(configdir)
-        shutil.rmtree(localproject)
-
-        f = zipfile.ZipFile(zfile)
-        f.extractall(localdir)
-
-        if os.path.exists(stationconf):
-            appcf = open(localconf,'a+')
-            stcf = open(stationconf).read()
-            appcf.write(stcf)
-            appcf.close()
-
-        if os.path.exists(slog4jprop):
-            logcf = open(localprop,'a+')
-            stscf = open(slog4jprop).read()
-            logcf.write(stscf)
-            logcf.close()
-
-        if(platform.system() == 'Windows'):
-            pyrt = os.path.join(playdir,'python','python.exe')
-            os.system('%s %s' % (pyrt,dbexec))
-        else:
-            os.system('python %s' % dbexec)
-
-        if os.path.exists(newver):
-            shutil.copy(newver,localproject)
-
-        pyutil.projectcontroller(playpath,'start',localproject)
-
-        shutil.copyfile(formalconf,defaultconf)
-        os.system('%s -s reload' % nginx)
-
-        pyutil.projectcontroller(playpath,'stop',tmpproject)
-
-        print time.strftime('%Y-%m-%d %H:%M:%S')+' %s由%s版本更新至%s版本成功！' % (projectname,lv[:-1],rv)
+            flag = False
+            printf ('Can\'t find %s/%s/%s.zip,升级失败！' % (remoteproject,rv.strip(),projectname))
+        if flag:
+            if os.path.exists(tmpproject):
+                shutil.rmtree(tmpproject)
+            shutil.copytree(localproject,tmpproject)
+            
+            try:
+                updateport.modifyconf(tmpconf,'http.port',port)
+            except:
+                printf ('Can\'t modify tmp project port:%s' % tmpconf)
+    
+            try:
+                os.remove(os.path.join(tmpproject,'server.pid'))
+            except:
+                pass
+    
+            projectcontroller(playpath,'start',tmpproject)
+            
+            shutil.copyfile(ngtmpconf,defaultconf)
+            os.chdir(os.path.dirname(nginx))
+            os.system('%s -s reload' % nginx)
+            
+            projectcontroller(playpath,'stop',localproject)
+    
+            if os.path.exists(configdir):
+                shutil.rmtree(configdir)
+            shutil.rmtree(localproject)
+    
+            f = zipfile.ZipFile(zfile)
+            f.extractall(localdir)
+    
+            if os.path.exists(stationconf):
+                appcf = open(localconf,'a+')
+                stcf = open(stationconf).read()
+                appcf.write(stcf)
+                appcf.close()
+    
+            if os.path.exists(slog4jprop):
+                logcf = open(localprop,'a+')
+                stscf = open(slog4jprop).read()
+                logcf.write(stscf)
+                logcf.close()
+    
+            if(platform.system() == 'Windows'):
+                pyrt = os.path.join(playdir,'python','python.exe')
+                os.system('%s %s' % (pyrt,dbexec))
+            else:
+                os.system('python %s' % dbexec)
+    
+            if os.path.exists(newver):
+                shutil.copy(newver,localproject)
+    
+            projectcontroller(playpath,'start',localproject)
+    
+            shutil.copyfile(formalconf,defaultconf)
+            os.chdir(os.path.dirname(nginx))
+            os.system('%s -s reload' % nginx)
+    
+            projectcontroller(playpath,'stop',tmpproject)
+    
+            printf (time.strftime('%Y-%m-%d %H:%M:%S')+' %s由%s版本更新至%s版本成功！' % (projectname,lv[:-1],rv))
 
 def checksalemod():
     remotedir = 'http://192.168.3.66:8080/takepackage/22010000005'

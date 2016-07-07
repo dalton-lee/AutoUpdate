@@ -192,7 +192,7 @@ def getProperties(filename):
     return properties
 
 if __name__ == '__main__':
-    f = 'C:\\Users\\Lee\\Desktop\\BusSale\\conf\\application.conf';
+    f = 'D:\\lee\\BusSync\\conf\\application.conf';
     ps = getProperties(f)
     shost = '';
     sport = '';
@@ -211,11 +211,11 @@ if __name__ == '__main__':
     conn = MySQLdb.connect(host=shost, port=int(sport), db=sdb, user=suser, passwd=spasswd, charset='utf8')
     cursor = conn.cursor();
     
-    sqlfilelist = acquiresqlfile('C:\\Users\\Lee\\Desktop\\localdb')
+    sqlfilelist = acquiresqlfile('D:\\lee\\updateconfig\\localdb')
     sqlsetlist = splitsql(sqlfilelist)
     executeSingleDB(sqlsetlist, cursor, conn)
     
-    sqlfilelist = acquiresqlfile('C:\\Users\\Lee\\Desktop\\localdb\\Patch')
+    sqlfilelist = acquiresqlfile('D:\\lee\\updateconfig\\localdb\\Patch')
     sqlsetlist = splitsql(sqlfilelist)
     executeSingleDB(sqlsetlist, cursor, conn)
     
@@ -224,13 +224,13 @@ if __name__ == '__main__':
     strs += ("不能重复执行的脚本语句数量=%d") % g_norepeatcount
     strs += ("有重复检查脚本的SQL语句数量=%d") % g_repeatcheckexeccount
     strs += ("忽略掉的脚本语句数量=%d") % g_sqlignorecount
-    sql = "insert into updatelog(project,isok,message) values ('%s', %d,'%s')" % ("BusSale", 0,strs)
-    try:
-        print sql
-        cursor.execute(sql)
-        conn.commit
-    except Exception, e:
-        print e
+#    sql = "insert into updatelog(project,isok,message) values ('%s', %d,'%s')" % ("BusSale", 0,strs)
+#    try:
+#        print sql
+#        cursor.execute(sql)
+#        conn.commit
+#    except Exception, e:
+#        print e
     
     cursor.close()
     conn.close()

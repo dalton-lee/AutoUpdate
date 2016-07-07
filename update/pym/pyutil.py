@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
-import urllib2
+
 import os
+import urllib2
+import platform
 
 def downloadFile(url, tofile):
     f = urllib2.urlopen(url)
@@ -18,3 +20,9 @@ def downloadFile(url, tofile):
 
 def projectcontroller(playpath,action,project):
     os.system('%s %s %s' % (playpath,action,project))
+
+def printf(string):
+    if(platform.system() != 'Windows'):
+        print (string)
+    else:
+        print (string.decode('utf-8').encode('gbk'))
