@@ -7,13 +7,12 @@ import time
 import urllib2
 import shutil
 import zipfile
-import platform
 
-def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf):
+def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay):
     pymdir = os.path.join(localdir,'pym')#自定义python模块目录
     sys.path.append(pymdir)
     from pyutil import printf,downloadFile,projectcontroller
-    import updateport
+    import updateport,updatelocaldb
     
     localproject = os.path.join(localdir,projectname)#本地工程目录
     tmpproject = '%s%s' % (localproject,'tmp')#临时工程目录
@@ -39,8 +38,8 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf):
     localprop = os.path.join(localproject,'conf','log4j.properties')#合并前的log4j.properties
     slog4jprop = os.path.join(configdir,'stationlog4j.properties')#合并前插件对应的车站log4j文件
 
-    dbexec = os.path.join(pymdir,'updatelocaldb.py')#自定义的sql脚本执行文件
-    playdir = os.path.dirname(playpath)#play根目录，windows下需要使用其内置的python
+    dbdir = os.path.join(configdir,'localdb')#主sql脚本目录
+    patchdir = os.path.join(dbdir,'Patch')#补丁sql脚本目录
 
     newver = os.path.join(configdir,'version')#升级后的版本文件，取自updateconfig目录
     
@@ -68,7 +67,7 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf):
         
         try:
             dfile = '%s/%s/%s' % (remoteproject,rv.strip(),projectname)
-            durl = urllib2.urlopen(dfile).read()
+            durl = urllib2.urlopen(dfile).read()  #判断是否有 工程名 的文件，读取文件里面写的指向common的路径
         except:
             flag = False
             printf ('Can\'t find %s/%s/%s,direct download zip file!' % (remoteproject,rv.strip(),projectname))
@@ -77,31 +76,34 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf):
             shutil.rmtree(configdir)
         os.makedirs(configdir)
 
-        if flag:
+        flag2 = True #flag2为true表示所有下载均正常
+        if flag:  #flag为true表示 下载common +特定车站配置文件
             try:
                 downloadFile('%s/%s/station.conf' % (remoteproject,rv.strip()),stationconf)
                 downloadFile('%s/%s/stationlog4j.properties' % (remoteproject,rv.strip()),slog4jprop)
             except:
-                flag = False
+                flag2 = False
                 printf ('Can\'t find %s/%s/station.conf or stationlog4j.properties,update abort!' % (remoteproject,rv.strip()))
             
             try:
                 downloadFile(durl,zfile)
             except:
-                flag = False
+                flag2 = False
                 printf ('Can\'t find %s,update abort' % durl)
-        else:
+        else:  #flag为false表示 直接下载 工程.zip
             try:
                 downloadFile('%s/%s/%s.zip' % (remoteproject,rv.strip(),projectname),zfile)
             except:
-                flag = False
+                flag2 = False
                 printf ('Can\'t find %s/%s/%s.zip,升级失败！' % (remoteproject,rv.strip(),projectname))
 
-        if flag:
-            shutil.copytree(localproject,tmpproject)
+        if flag2:  #flag2为true表示 下载成功
+            if os.path.exists(tmpproject):
+                shutil.rmtree(tmpproject)  #删除临时工程
+            shutil.copytree(localproject,tmpproject)  #COPY旧的工程 到 临时工程
             
             try:
-                updateport.modifyconf(tmpconf,'http.port',port)
+                updateport.modifyconf(tmpconf,'http.port',port)  #修改临时工程的端口
             except:
                 printf ('Can\'t modify tmp project port:%s' % tmpconf)
     
@@ -110,48 +112,48 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf):
             except:
                 pass
     
-            projectcontroller(playpath,'start',tmpproject)
+            projectcontroller(playpath,'start',tmpproject) #启动临时工程
             
-            shutil.copyfile(ngtmpconf,defaultconf)
-            os.chdir(os.path.dirname(nginx))
-            os.system('%s -s reload' % nginx)
+            shutil.copyfile(ngtmpconf,defaultconf) #COPY临时工程NGINX配置为当前配置
+            os.chdir(os.path.dirname(nginx)) #切换当前目录到NGINX目录
+            os.system('%s -s reload' % nginx) #平滑切换NGINX到临时工程
             
-            projectcontroller(playpath,'stop',localproject)
+            time.sleep(delay)  
+            
+            projectcontroller(playpath,'stop',localproject) #停正式工程
     
-            shutil.rmtree(localproject)
+            shutil.rmtree(localproject) #删除正式工程
     
             f = zipfile.ZipFile(zfile)
-            f.extractall(localdir)
+            f.extractall(localdir) #解压下载工程.zip 到正式工程
     
-            if os.path.exists(stationconf):
+            if os.path.exists(stationconf): #如果存在车站分离配置文件（有可能是单独下载的，也有可能是解压的）
                 appcf = open(localconf,'a+')
                 stcf = open(stationconf).read()
                 appcf.write(os.linesep)
                 appcf.write(stcf)
                 appcf.close()
     
-            if os.path.exists(slog4jprop):
+            if os.path.exists(slog4jprop): #如果存在车站分离配置文件（有可能是单独下载的，也有可能是解压的）
                 logcf = open(localprop,'a+')
                 stscf = open(slog4jprop).read()
                 logcf.write(os.linesep)
                 logcf.write(stscf)
                 logcf.close()
     
-            if(platform.system() == 'Windows'):
-                pyrt = os.path.join(playdir,'python','python.exe')
-                os.system('%s %s' % (pyrt,dbexec))
-            else:
-                os.system('python %s' % dbexec)
+            updatelocaldb.execsql(localconf,dbdir,patchdir)
     
-            if os.path.exists(newver):
+            if os.path.exists(newver):  #更新当前版本文件
                 shutil.copy(newver,localproject)
     
-            projectcontroller(playpath,'start',localproject)
+            projectcontroller(playpath,'start',localproject)  #启动正式工程
     
-            shutil.copyfile(formalconf,defaultconf)
+            shutil.copyfile(formalconf,defaultconf)  #COPY正式工程NGINX配置为当前配置
             os.chdir(os.path.dirname(nginx))
-            os.system('%s -s reload' % nginx)
-    
+            os.system('%s -s reload' % nginx) #平滑切换NGINX到正式工程
+
+            time.sleep(delay)
+                
             projectcontroller(playpath,'stop',tmpproject)
     
             printf (time.strftime('%Y-%m-%d %H:%M:%S')+' %s由%s版本更新至%s版本成功！' % (projectname,lv[:-1],rv))
@@ -165,4 +167,5 @@ def checksalemod():
     port = '7890'
     nginx = '/usr/sbin/nginx'#可执行文件
     ngconf = '/etc/nginx'#配置文件目录
-    checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf)
+    delay = 60
+    checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay)

@@ -7,12 +7,12 @@ import time
 import shutil
 import zipfile
 import urllib2
-import platform
 
 def checksync(remotedir,localdir,projectname,playpath):
     pymdir = os.path.join(localdir,'pym')
     sys.path.append(pymdir)
     from pyutil import printf,downloadFile,projectcontroller
+    import updatelocaldb
 
     if not remotedir.endswith('/'):
         remoteproject = remotedir + '/' + projectname
@@ -29,7 +29,8 @@ def checksync(remotedir,localdir,projectname,playpath):
     zfile = os.path.join(localdir,'%s.zip' % projectname)
     configdir = os.path.join(localdir,'updateconfig')
     
-    dbexec = os.path.join(pymdir,'updatelocaldb.py')
+    dbdir = os.path.join(configdir,'localdb')#主sql脚本目录
+    patchdir = os.path.join(dbdir,'Patch')#补丁sql脚本目录
     
     localconf = os.path.join(localproject,'conf','application.conf')
     stationconf = os.path.join(configdir,'station.conf')
@@ -67,27 +68,28 @@ def checksync(remotedir,localdir,projectname,playpath):
             shutil.rmtree(configdir)
         os.makedirs(configdir)
 
+        flag2 = True
         if flag:
             try:
                 downloadFile('%s/%s/station.conf' % (remoteproject,rv.strip()),stationconf)
                 downloadFile('%s/%s/stationlog4j.properties' % (remoteproject,rv.strip()),slog4jprop)
             except:
-                flag = False
+                flag2 = False
                 printf ('Can\'t find %s/%s/station.conf or stationlog4j.properties,update abort!' % (remoteproject,rv.strip()))
             
             try:
                 downloadFile(durl,zfile)
             except:
-                flag = False
+                flag2 = False
                 printf ('Can\'t find %s,update abort' % durl)
         else:
             try:
                 downloadFile('%s/%s/%s.zip' % (remoteproject,rv.strip(),projectname),zfile)
             except:
-                flag = False
+                flag2 = False
                 printf ('Can\'t find %s/%s/%s.zip' % (remoteproject,rv.strip(),projectname))
 
-        if flag:
+        if flag2:
             projectcontroller(playpath,'stop',localproject)
             shutil.rmtree(localproject)
     
@@ -108,12 +110,7 @@ def checksync(remotedir,localdir,projectname,playpath):
                 logcf.write(stscf)
                 logcf.close()
     
-            if(platform.system() == 'Windows'):
-                playdir = os.path.dirname(playpath)
-                pyrt = os.path.join(playdir,'python','python.exe')
-                os.system('%s %s' % (pyrt,dbexec))
-            else:
-                os.system('python %s' % dbexec)
+            updatelocaldb.execsql(localconf,dbdir,patchdir)
     
             if os.path.exists(newver):
                 shutil.copy(newver,localproject)
