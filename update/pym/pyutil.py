@@ -20,6 +20,9 @@ def downloadFile(url, tofile):
 
 def projectcontroller(playpath,action,project):
     os.system('%s %s %s' % (playpath,action,project))
+    
+def projectcontrollerwin(action,servicename):
+    os.system('%s %s %s' % ('net',action,servicename))
 
 def printf(string):
     if(platform.system() != 'Windows'):

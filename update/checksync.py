@@ -7,11 +7,12 @@ import time
 import shutil
 import zipfile
 import urllib2
+import platform
 
-def checksync(remotedir,localdir,projectname,playpath):
+def checksync(remotedir,localdir,projectname,playpath,servicename):
     pymdir = os.path.join(localdir,'pym')
     sys.path.append(pymdir)
-    from pyutil import printf,downloadFile,projectcontroller
+    from pyutil import printf,downloadFile,projectcontroller,projectcontrollerwin
     import updatelocaldb
 
     if not remotedir.endswith('/'):
@@ -90,7 +91,10 @@ def checksync(remotedir,localdir,projectname,playpath):
                 printf ('Can\'t find %s/%s/%s.zip' % (remoteproject,rv.strip(),projectname))
 
         if flag2:
-            projectcontroller(playpath,'stop',localproject)
+            if(platform.system() == 'Linux'):
+                projectcontroller(playpath,'stop',localproject)
+            else:
+                projectcontrollerwin('stop',servicename)
             shutil.rmtree(localproject)
     
             f = zipfile.ZipFile(zfile)
@@ -114,8 +118,10 @@ def checksync(remotedir,localdir,projectname,playpath):
     
             if os.path.exists(newver):
                 shutil.copy(newver,localproject)
-    
-            projectcontroller(playpath,'start',localproject)
+            if(platform.system() == 'Linux'):
+                projectcontroller(playpath,'start',localproject)
+            else:
+                projectcontrollerwin('start',servicename)
             printf (time.strftime('%Y-%m-%d %H:%M:%S')+'：%s由%s版本更新至%s版本成功！' % (projectname,lv[:-1],rv))
 
 def checksyncmod():
@@ -123,4 +129,5 @@ def checksyncmod():
     localdir = '/home/lee'
     projectname = 'BusSync'
     playpath = '/home/lee/play-1.2.3/play'
-    checksync(remotedir,localdir,projectname,playpath)
+    servicename = 'BusSyncService'
+    checksync(remotedir,localdir,projectname,playpath,servicename)

@@ -7,11 +7,12 @@ import time
 import urllib2
 import shutil
 import zipfile
+import platform
 
-def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay):
+def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay,servicename):
     pymdir = os.path.join(localdir,'pym')#自定义python模块目录
     sys.path.append(pymdir)
-    from pyutil import printf,downloadFile,projectcontroller
+    from pyutil import printf,downloadFile,projectcontroller,projectcontrollerwin
     import updateport,updatelocaldb
     
     localproject = os.path.join(localdir,projectname)#本地工程目录
@@ -120,7 +121,10 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay):
             
             time.sleep(delay)  
             
-            projectcontroller(playpath,'stop',localproject) #停正式工程
+            if(platform.system() == 'Linux'):
+                projectcontroller(playpath,'stop',localproject)
+            else:
+                projectcontrollerwin('stop',servicename)
     
             shutil.rmtree(localproject) #删除正式工程
     
@@ -146,8 +150,11 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay):
             if os.path.exists(newver):  #更新当前版本文件
                 shutil.copy(newver,localproject)
     
-            projectcontroller(playpath,'start',localproject)  #启动正式工程
-    
+            if(platform.system() == 'Linux'):
+                projectcontroller(playpath,'start',localproject)
+            else:
+                projectcontrollerwin('start',servicename)
+            
             shutil.copyfile(formalconf,defaultconf)  #COPY正式工程NGINX配置为当前配置
             os.chdir(os.path.dirname(nginx))
             os.system('%s -s reload' % nginx) #平滑切换NGINX到正式工程
@@ -167,5 +174,6 @@ def checksalemod():
     port = '7890'
     nginx = '/usr/sbin/nginx'#可执行文件
     ngconf = '/etc/nginx'#配置文件目录
-    delay = 60
-    checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay)
+    delay = 60 #延迟切换时间，保证过渡平滑
+    servicename = 'BusSaleService' #windows下服务名称
+    checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf,delay,servicename)
