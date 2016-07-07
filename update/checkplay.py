@@ -2,64 +2,83 @@
 #coding=utf-8
 
 import os
+import sys
 import json
-import urllib2
 import time
+import urllib2
+import platform
 
-def checkplay(version,url,localfile,playdir,host):
+def checkplay(remotedir,localdir):
+    if not remotedir.endswith('/'):
+        rverfile = remotedir + '/' + 'version'
+        rmd5file = remotedir + '/' + 'filemd5'
+    else:
+        rverfile = remotedir + 'version'
+        rmd5file = remotedir + 'filemd5'
+    lverfile = os.path.join(localdir,'version')
+    lmd5file = os.path.join(localdir,'filemd5')
     while True:
-        if not os.path.isdir(playdir):
-            os.mkdir(playdir)
-        rs = '0'
-        ls = '1'
+        if not os.path.isdir(localdir):
+            os.makedirs(localdir)
+        ls = '0'
+        rs = '1';
         try:
-            rs = urllib2.urlopen(version).read()
+            rs = urllib2.urlopen(rverfile).read()
         except:
-            print 'Can not find versionfile:%s' % version
+            print 'Can\'t find remote version file:%s' % rverfile
         try:
-            ls = open(os.path.join(playdir,'version')).read()
+            ls = open(lverfile).read()
         except:
-            print 'Can not find versionfile:%s' % playdir
+            print 'Can\'t find local version file:%s' % lverfile
         if rs.strip() == ls.strip() :
-            print '暂无更新，当前版本号为：%s' % rs
+            print time.strftime('%Y-%m-%d %H:%M:%S')+'：play暂无更新，当前版本号为：%s' % (ls)
         else:
             print '发现新版本，新版本号为：%s' % rs
-            print '开始解析差异文件：%s' % url
-            remotestr = urllib2.urlopen(url).read()
+            print '开始解析差异文件：%s' % rmd5file
+            remotestr = urllib2.urlopen(rmd5file).read()
             remotedict = json.loads(remotestr)
             remotekeys = set(remotedict.keys())
 
             localstr = '';
             localdict = {'':''}
             try:
-                localstr = open(localfile).read()
+                localstr = open(lmd5file).read()
             except:
-                print 'Can not find localmd5file:%s' % localfile
+                print 'Can\'t find local md5 file:%s' % lmd5file
             try:
                 localdict = json.loads(localstr)
             except:
-                
-                print 'Can not load md5file as json:%s' % localfile
+                print 'Can\'t load md5 file as json:%s' % lmd5file
             localkeys = set(localdict.keys())
 
             print '同步删除中..'
             localdiff = localkeys-remotekeys
             for local in localdiff:
-                filepath = os.path.join(playdir,localdict[local])
+                lpath = localdict[local].replace('/',os.path.sep)
+                filepath = os.path.join(localdir,lpath)
                 removefile(filepath)
                 continue
 
             print '同步更新中..'
             remotediff = remotekeys-localkeys
             for remote in remotediff:
-                path = remotedict[remote]
-                remotepath = os.path.join(host,path)
-                filepath = os.path.join(playdir,path)
+                rpath = remotedict[remote]
+                remotepath = ''
+                if not remotedir.endswith('/'):
+                    remotepath = remotedir + '/' + rpath
+                else:
+                    remotepath = remotedir + rpath
+                filepath = os.path.join(localdir,rpath.replace('/',os.path.sep))
                 addfile(remotepath,filepath)
                 continue
-            print ('%s版本更新%s版本成功！时间：%s' % (ls,rs,time.strftime('%Y-%m-%d %H:%M:%S')))
-#		checksale.check()
+            if(platform.system() == 'Linux'):
+                play = os.path.join(localdir,'play')
+                os.system('chmod 744 %s' % play)
+            print time.strftime('%Y-%m-%d %H:%M:%S')+'：play由%s版本更新至%s版本成功！' % (ls,rs)
+        checksale3.checksalemod()
+        checksync3.checksyncmod()
         time.sleep(60)
+
 def removefile(filepath):
     parentdir = os.path.dirname(filepath)
     try:
@@ -84,28 +103,17 @@ def addfile(remotepath,filepath):
         os.makedirs(dirname)
         print 'mkdir:%s' % dirname
     try:
-        downloadFile(remotepath,filepath)
+        pyutil.downloadFile(remotepath,filepath)
         print 'add:%s' % filepath
     except:
         print 'failed:%s' % remotepath
 
-def downloadFile(url,tofile):
-    f = urllib2.urlopen(url)
-    outf = open(tofile,'wb')        
-    c = 0
-    while True:
-        s = f.read(1024*32)
-        if len(s) == 0:
-            break
-        outf.write(s)
-        c += len(s)
-    outf.close()
-    return c/1024/1024
-
 if __name__ == '__main__':
-    version = 'http://192.168.3.66:8080/takepackage/play-1.2.3/version'
-    url = 'http://192.168.3.66:8080/takepackage/play-1.2.3/filemd5'
-    localfile = '/home/lee/play-1.2.3/filemd5'
-    playdir = '/home/lee/play-1.2.3/'
-    host = 'http://192.168.3.66:8080/takepackage/play-1.2.3/'
-    checkplay(version,url,localfile,playdir,host)
+    remotedir = 'http://192.168.3.66:8080/takepackage/play-1.2.3/'
+    localdir = '/home/lee/play-1.2.3/'
+    pymdir = '/home/lee/pym'
+    sys.path.append(pymdir)
+    import pyutil
+    import checksale3
+    import checksync3
+    checkplay(remotedir,localdir)
