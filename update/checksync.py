@@ -56,14 +56,37 @@ def checksync(remotedir,localdir,projectname,playpath):
     else:
         flag = True
         try:
-            downloadFile('%s/%s/%s.zip' % (remoteproject,rv.strip(),projectname),zfile)
+            dfile = '%s/%s/%s' % (remoteproject,rv.strip(),projectname)
+            durl = urllib2.urlopen(dfile).read()
         except:
             flag = False
-            printf ('Can\'t found %s/%s/%s.zip' % (remoteproject,rv.strip(),projectname))
+            printf ('Can\'t find %s/%s/%s,direct download zip file!' % (remoteproject,rv.strip(),projectname))
+
+        if os.path.exists(configdir):
+            shutil.rmtree(configdir)
+        os.makedirs(configdir)
+
         if flag:
-            if os.path.exists(configdir):
-                shutil.rmtree(configdir)
-    
+            try:
+                downloadFile('%s/%s/station.conf' % (remoteproject,rv.strip()),stationconf)
+                downloadFile('%s/%s/stationlog4j.properties' % (remoteproject,rv.strip()),slog4jprop)
+            except:
+                flag = False
+                printf ('Can\'t find %s/%s/staion.conf or stationlog4j.properties,update abort!' % (remoteproject,rv.strip()))
+            
+            try:
+                downloadFile(durl,zfile)
+            except:
+                flag = False
+                printf ('Can\'t find %s,update abort' % durl)
+        else:
+            try:
+                downloadFile('%s/%s/%s.zip' % (remoteproject,rv.strip(),projectname),zfile)
+            except:
+                flag = False
+                printf ('Can\'t find %s/%s/%s.zip' % (remoteproject,rv.strip(),projectname))
+
+        if flag:
             projectcontroller(playpath,'stop',localproject)
             shutil.rmtree(localproject)
     
@@ -73,12 +96,14 @@ def checksync(remotedir,localdir,projectname,playpath):
             if os.path.exists(stationconf):
                 appcf = open(localconf,'a+')
                 stcf = open(stationconf).read()
+                appcf.write(os.linesep)
                 appcf.write(stcf)
                 appcf.close()
     
             if os.path.exists(slog4jprop):
                 logcf = open(localprop,'a+')
                 stscf = open(slog4jprop).read()
+                logcf.write(os.linesep)
                 logcf.write(stscf)
                 logcf.close()
     
