@@ -43,7 +43,8 @@ def checksync(remotedir,localdir,projectname,playpath):
     try:
         rv = urllib2.urlopen(rverfile).read()
     except:
-        printf ('Connection refused: %s' % rverfile)
+        printf ('无法读取%s远程版本文件，请通过浏览器确认文件是否可以访问！等待60秒后尝试下次更新！' % rverfile)
+        return
 
     lv = '0'
     try:
@@ -72,7 +73,7 @@ def checksync(remotedir,localdir,projectname,playpath):
                 downloadFile('%s/%s/stationlog4j.properties' % (remoteproject,rv.strip()),slog4jprop)
             except:
                 flag = False
-                printf ('Can\'t find %s/%s/staion.conf or stationlog4j.properties,update abort!' % (remoteproject,rv.strip()))
+                printf ('Can\'t find %s/%s/station.conf or stationlog4j.properties,update abort!' % (remoteproject,rv.strip()))
             
             try:
                 downloadFile(durl,zfile)

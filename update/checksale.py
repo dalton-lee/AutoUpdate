@@ -52,7 +52,8 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf):
     try:
         rv = urllib2.urlopen(rverfile).read()
     except:
-        printf ('Connection refused: %s' % rverfile)
+        printf ('无法读取%s远程版本文件，请通过浏览器确认文件是否可以访问！等待60秒后尝试下次更新！' % rverfile)
+        return
 
     lv = 'v'
     try:
@@ -82,7 +83,7 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf):
                 downloadFile('%s/%s/stationlog4j.properties' % (remoteproject,rv.strip()),slog4jprop)
             except:
                 flag = False
-                printf ('Can\'t find %s/%s/staion.conf or stationlog4j.properties,update abort!' % (remoteproject,rv.strip()))
+                printf ('Can\'t find %s/%s/station.conf or stationlog4j.properties,update abort!' % (remoteproject,rv.strip()))
             
             try:
                 downloadFile(durl,zfile)
@@ -117,8 +118,6 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf):
             
             projectcontroller(playpath,'stop',localproject)
     
-            if os.path.exists(configdir):
-                shutil.rmtree(configdir)
             shutil.rmtree(localproject)
     
             f = zipfile.ZipFile(zfile)
@@ -127,12 +126,14 @@ def checksale(remotedir,localdir,projectname,playpath,port,nginx,ngconf):
             if os.path.exists(stationconf):
                 appcf = open(localconf,'a+')
                 stcf = open(stationconf).read()
+                appcf.write(os.linesep)
                 appcf.write(stcf)
                 appcf.close()
     
             if os.path.exists(slog4jprop):
                 logcf = open(localprop,'a+')
                 stscf = open(slog4jprop).read()
+                logcf.write(os.linesep)
                 logcf.write(stscf)
                 logcf.close()
     

@@ -193,7 +193,12 @@ def getProperties(filename):
 
 if __name__ == '__main__':
     f = 'D:\\lee\\BusSync\\conf\\application.conf';
-    ps = getProperties(f)
+    ps = {}
+    try:
+        ps = getProperties(f)
+    except:
+        f = 'D:\\lee\\BusSale\\conf\\application.conf'
+        ps = getProperties(f)
     shost = '';
     sport = '';
     sdb = '';
@@ -219,11 +224,11 @@ if __name__ == '__main__':
     sqlsetlist = splitsql(sqlfilelist)
     executeSingleDB(sqlsetlist, cursor, conn)
     
-    strs = ("所有脚本数量=%d") % g_sqlcount
-    strs += ("执行错误脚本数量=%d") % g_errorcount
-    strs += ("不能重复执行的脚本语句数量=%d") % g_norepeatcount
-    strs += ("有重复检查脚本的SQL语句数量=%d") % g_repeatcheckexeccount
-    strs += ("忽略掉的脚本语句数量=%d") % g_sqlignorecount
+#    strs = ("所有脚本数量=%d") % g_sqlcount
+#    strs += ("执行错误脚本数量=%d") % g_errorcount
+#    strs += ("不能重复执行的脚本语句数量=%d") % g_norepeatcount
+#    strs += ("有重复检查脚本的SQL语句数量=%d") % g_repeatcheckexeccount
+#    strs += ("忽略掉的脚本语句数量=%d") % g_sqlignorecount
 #    sql = "insert into updatelog(project,isok,message) values ('%s', %d,'%s')" % ("BusSale", 0,strs)
 #    try:
 #        print sql
@@ -235,10 +240,10 @@ if __name__ == '__main__':
     cursor.close()
     conn.close()
     
-#    print("--------------------------执行结果------------------------")
-#    print("所有脚本数量=%d") % g_sqlcount
-#    print("执行错误脚本数量=%d") % g_errorcount
-#    print("不能重复执行的脚本语句数量=%d") % g_norepeatcount
-#    print("有重复检查脚本的SQL语句数量=%d") % g_repeatcheckexeccount
-#    print("忽略掉的脚本语句数量=%d") % g_sqlignorecount
-#    print("--------------------------执行完毕------------------------")
+    print("--------------------------执行结果------------------------")
+    print("所有脚本数量=%d") % g_sqlcount
+    print("执行错误脚本数量=%d") % g_errorcount
+    print("不能重复执行的脚本语句数量=%d") % g_norepeatcount
+    print("有重复检查脚本的SQL语句数量=%d") % g_repeatcheckexeccount
+    print("忽略掉的脚本语句数量=%d") % g_sqlignorecount
+    print("--------------------------执行完毕------------------------")

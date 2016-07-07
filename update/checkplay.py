@@ -25,7 +25,9 @@ def checkplay(remotedir,localdir):
         try:
             rs = urllib2.urlopen(rverfile).read()
         except:
-            printf ('Can\'t find remote version file:%s' % rverfile)
+            printf ('Can\'t find remote version file:%s,wait for next time!' % rverfile)
+            time.sleep(60)
+            continue
         try:
             ls = open(lverfile).read()
         except:
@@ -35,11 +37,18 @@ def checkplay(remotedir,localdir):
         else:
             printf ('发现新版本，新版本号为：%s' % rs)
             printf ('开始解析差异文件：%s' % rmd5file)
-            remotestr = urllib2.urlopen(rmd5file).read()
+            remotestr = ''
+            try:
+                remotestr = urllib2.urlopen(rmd5file).read()
+            except:
+                printf ('无法找到远程md5文件，请检查服务端目录或通过浏览器查看文件是否存在：%s' % rmd5file)
+                printf ('等待60秒后，重新尝试更新！')
+                time.sleep(60)
+                continue
             remotedict = json.loads(remotestr)
             remotekeys = set(remotedict.keys())
 
-            localstr = '';
+            localstr = ''
             localdict = {'':''}
             try:
                 localstr = open(lmd5file).read()
@@ -75,8 +84,8 @@ def checkplay(remotedir,localdir):
                 play = os.path.join(localdir,'play')
                 os.system('chmod 744 %s' % play)
             printf (time.strftime('%Y-%m-%d %H:%M:%S')+'：play由%s版本更新至%s版本成功！' % (ls,rs))
-#        checksale.checksalemod()
         checksync.checksyncmod()
+        checksale.checksalemod()
         time.sleep(60)
 
 def removefile(filepath):
