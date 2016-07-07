@@ -4,10 +4,19 @@ import os
 import re
 
 import MySQLdb
-try:
-    from pyutil import decrypt
-except:
-    print('error:Can\'t find pyutil.py')
+from Crypto.Cipher import AES
+
+def decrypt(ciphertext):
+    key = "" #根据自己的规则制定！
+    mode = AES.MODE_CBC 
+    IV = 16 * '\x00'
+    
+    decryptor = AES.new(key, mode,IV) 
+    ciphertext = ciphertext[1:len(ciphertext)]
+    ciphertext = ciphertext.decode('hex');
+    plain = decryptor.decrypt(ciphertext)
+    padlen = ord(plain[len(plain)-1])
+    return plain[0:len(plain)-padlen]
 
 #acquire each sql list file from a path ,separated  in a different list  by execute database type
 def acquiresqlfile(path):

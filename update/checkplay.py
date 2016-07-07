@@ -28,6 +28,7 @@ def checkplay(remotedir,workdir):
     nginx = UPDATE_CONFIG.get('BusSale', 'nginx')
     ngconf = UPDATE_CONFIG.get('BusSale', 'ngconf')
     delay = UPDATE_CONFIG.get('BusSale', 'delay')
+    delay = float(delay)
     
     remotedir = remotedir + 'play-1.2.3/'
     localdir = os.path.join(workdir,'play-1.2.3')
@@ -38,6 +39,9 @@ def checkplay(remotedir,workdir):
     rmd5file = remotedir + 'filemd5'
     lverfile = os.path.join(localdir,'version')
     lmd5file = os.path.join(localdir,'filemd5')
+    
+    fileloop = os.path.join(localdir,'FileLoop')
+    
     while True:
         if not os.path.isdir(localdir):
             os.makedirs(localdir)
@@ -55,7 +59,8 @@ def checkplay(remotedir,workdir):
             printf ('Can\'t find local version file:%s' % lverfile)
             printf ('开始生成本地MD5文件')
             try:
-                os.system('python /home/lee/pym/FileLoop')
+                os.chdir(localdir)
+                os.system('python %s' % fileloop)
                 time.sleep(10)
             except:
                 printf('生成本地MD5文件失败，再说...')  

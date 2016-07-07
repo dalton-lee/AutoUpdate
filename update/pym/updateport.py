@@ -18,7 +18,7 @@ def modifyconf(filepath,key,value):
         s = s + "\r\n" +  key + " = " + value + "\r\n"
     f.close()
     f = codecs.open(filepath,'w')
-    f.write(str)
+    f.write(s)
     f.close()
 
 def getkeybyline(line,key):

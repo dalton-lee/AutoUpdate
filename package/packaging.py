@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#-*-coding:utf-8-*-
 
 import os
 import chardet
@@ -29,12 +29,12 @@ def getConfig(filename):
 def getValue(sectionName,optionName):
     global GLOBAL_CONFIG
     if not GLOBAL_CONFIG.has_section(sectionName):
-        printf('配置文件中不存在 %s这个section!' % sectionName)
+        printf(u'配置文件中不存在 %s这个section!' % sectionName)
         return None
     if GLOBAL_CONFIG.has_option(sectionName,optionName):
         return GLOBAL_CONFIG.get(sectionName,optionName)
     else:
-        printf('配置文件中%s这个section下未找到名为%s的option' % (sectionName,optionName))
+        printf(u'配置文件中%s这个section下未找到名为%s的option' % (sectionName,optionName))
         return None
 
 def compress(dirname,zipfilename):
@@ -65,8 +65,6 @@ def takepackage(project,version,stationnameuni):
     svnpath = getValue(project,'svnpath')
     archivedir = getValue(project,'archivepath')
 
-#    stationnameuni = stationname.decode('utf-8')
-    
     stationcode = getValue('stationcode',stationnameuni)
     pluginname = getValue('plugin',stationnameuni)
 
@@ -81,25 +79,46 @@ def takepackage(project,version,stationnameuni):
         client.export(remotepath,localpath)
     
     confpath = os.path.join(versiondir,project,'conf')
-    
+
     if os.path.isfile(os.path.join(confpath,'application.conf')):
         os.remove(os.path.join(confpath,'application.conf'))
         
     if os.path.isfile(os.path.join(confpath,'log4j.properties')):   
         os.remove(os.path.join(confpath,'log4j.properties'))
-    
-    pubconfpath = svnpath+'/Trunk/SRC/takepackage/publicconfig/'+project+'/application.conf'
-    client.export(pubconfpath,confpath)
-    
-    pubproppath = svnpath+'/Trunk/SRC/takepackage/publicconfig/'+project+'/log4j.properties'
-    client.export(pubproppath,confpath)
-    
-    staconfpath = svnpath+'/Branches/'+version+'/SRC/'+project+'/plugin/'+pluginname+'/station_%s.conf' % stationnameuni
-    client.export(staconfpath,confpath)
-    
-    staproppath = svnpath+'/Branches/'+version+'/SRC/'+project+'/plugin/'+pluginname+'/stationlog4j_%s.properties' % stationnameuni
-    client.export(staproppath,confpath)
-    
+
+
+#   ----批量注释原下载公共配置文件及车站独立配置文件，再进行合并的代码
+#     pubconfpath = svnpath+'/Trunk/SRC/takepackage/publicconfig/'+project+'/application.conf'
+#     client.export(pubconfpath,confpath)
+#
+#     pubproppath = svnpath+'/Trunk/SRC/takepackage/publicconfig/'+project+'/log4j.properties'
+#     client.export(pubproppath,confpath)
+#
+#     staconfpath = svnpath+'/Branches/'+version+'/SRC/'+project+'/plugin/'+pluginname+'/station_%s.conf' % stationnameuni
+#     client.export(staconfpath,confpath)
+#
+#     staproppath = svnpath+'/Branches/'+version+'/SRC/'+project+'/plugin/'+pluginname+'/stationlog4j_%s.properties' % stationnameuni
+#     client.export(staproppath,confpath)
+#
+#     pubconfprop = getProperties(os.path.join(confpath,'application.conf'))
+#     plugconfprop = getProperties(os.path.join(confpath,'station_%s.conf' % stationnameuni))
+#     mergePropertiesToFile(pubconfprop,plugconfprop,os.path.join(confpath,'application.conf'))
+#     os.remove(os.path.join(confpath,'station_%s.conf' % stationnameuni))
+#
+#     publogprop = getProperties(os.path.join(confpath,'log4j.properties'))
+#     pluglogprop = getProperties(os.path.join(confpath,'stationlog4j_%s.properties' % stationnameuni))
+#     mergePropertiesToFile(publogprop,pluglogprop,os.path.join(confpath,'log4j.properties'))
+#     os.remove(os.path.join(confpath,'stationlog4j_%s.properties' % stationnameuni))
+#   -----批量注释原下载公共配置文件及车站独立配置文件，再进行合并的代码
+
+
+#   直接下载车站生产环境的配置文件
+    pzdir = u'配置文件'
+    station_application = 'svn://192.168.3.3/interfaceconfig/%s/%s/%s/conf/application.conf'  % (pzdir,stationnameuni,project)
+    client.export(station_application,confpath)
+    station_log4j = 'svn://192.168.3.3/interfaceconfig/%s/%s/%s/conf/log4j.properties'  % (pzdir,stationnameuni,project)
+    client.export(station_log4j,confpath)
+
     svnplugin = svnpath+'/Branches/'+version+'/SRC/'+project+'/plugin/'+pluginname+'/app'
     localplugin = os.path.join(versiondir,project,'plugin',pluginname,'app')
     client.export(svnplugin,localplugin)
@@ -107,26 +126,17 @@ def takepackage(project,version,stationnameuni):
     svnsqlpath = svnpath+'/Branches/'+version+'/SQL/'+version.replace("v","V")+'/sil'
     localdb = os.path.join(versiondir,'updateconfig','localdb')
     client.export(svnsqlpath,localdb)
-    
-    svnpatchpath = svnpath+'/Branches/'+version+'/SQL/Patch/sil'
-    patchpath = os.path.join(versiondir,'updateconfig','localdb','Patch')
-    client.export(svnpatchpath,patchpath)
-    
+
+#    svnpatchpath = svnpath+'/Branches/'+version+'/SQL/Patch/sil'
+#    patchpath = os.path.join(versiondir,'updateconfig','localdb','Patch')
+#    client.export(svnpatchpath,patchpath)
+
     versionfile = os.path.join(versiondir,'updateconfig','version')
     f = codecs.open(versionfile,'w','utf-8')
     f.write(tarversion)
     f.close()
     
-    pubconfprop = getProperties(os.path.join(confpath,'application.conf'))
-    plugconfprop = getProperties(os.path.join(confpath,'station_%s.conf' % stationnameuni))
-    mergePropertiesToFile(pubconfprop,plugconfprop,os.path.join(confpath,'application.conf'))
-    os.remove(os.path.join(confpath,'station_%s.conf' % stationnameuni))
-    
-    publogprop = getProperties(os.path.join(confpath,'log4j.properties'))
-    pluglogprop = getProperties(os.path.join(confpath,'stationlog4j_%s.properties' % stationnameuni))
-    mergePropertiesToFile(publogprop,pluglogprop,os.path.join(confpath,'log4j.properties'))
-    os.remove(os.path.join(confpath,'stationlog4j_%s.properties' % stationnameuni))
-    
+
     compress(versiondir,os.path.join(versiondir,'%s.zip' % project))
     
     shutil.copy(versionfile, os.path.join(os.path.dirname(versiondir),'version'))
@@ -167,7 +177,8 @@ def printf(string):
     if(platform.system() != 'Windows'):
         print(string)
     else:
-        print(string.decode('utf-8').encode('gbk'))
+#        print(string.decode('utf-8').encode('gbk'))
+        print(string)
 
 if __name__=="__main__":
     getConfig(r'packaging.ini')
@@ -177,24 +188,29 @@ if __name__=="__main__":
     syncerror = []
     saleerror = []
     
-    printf('请输入打包方式：1.单个工程；2.打包所有工程：')
+    printf(u'请输入打包方式：1.单个工程；2.打包所有工程：')
     flag = raw_input()
     
     if flag == '1':
-        printf('请输入工程名:')
+        printf(u'请输入工程名:')
         project = raw_input()
         
-        printf('请输入分支版本号:')
+        printf(u'请输入分支版本号:')
         version = raw_input()
         
-        printf('请输入车站名称:')
+        printf(u'请输入车站名称:')
         station = raw_input()
-        
-        stationuni = station.decode('gbk')
+        printf('input:'+station)
+        print platform.system()
+        if(platform.system() != 'Windows'):
+            stationuni = station
+        else:
+            stationuni = station.decode('gbk')
+        printf('stationuni:'+station)
         takepackage(project,version,stationuni)
         
     elif flag == '2':
-        printf('开始打包：%s' % datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+        printf(u'开始打包：%s' % datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         for key in optins:
             try:
                 takepackage('BusSync',syncversion,key)
@@ -204,12 +220,12 @@ if __name__=="__main__":
                 takepackage('BusSale',saleversion,key)
             except:
                 saleerror.append(key)
-        printf('打包结束：%s' % datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
-        printf('同步打包异常车站：')
+        printf(u'打包结束：%s' % datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+        printf(u'同步打包异常车站：')
         for sy in syncerror:
             print sy
-        printf('业务打包异常车站：')
+        printf(u'业务打包异常车站：')
         for sa in saleerror:
             print sa
     else:
-        printf('参数输入错误！')
+        printf(u'参数输入错误！')
